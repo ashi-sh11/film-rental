@@ -25,9 +25,6 @@ public class Staff {
     @Column(name = "address_id")
     private Integer addressId;
 
-    @Column(name = "picture")
-    private byte[] picture;
-
     @Column(name = "email")
     private String email;
 

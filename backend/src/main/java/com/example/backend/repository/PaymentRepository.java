@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface PaymentRepository extends JpaRepository<Payment, Integer> {
+public interface PaymentRepository extends JpaRepository<Payment, Integer>, PaymentRepositoryCustom {
 
     @EntityGraph(attributePaths = {"customer", "staff", "rental"})
     Optional<Payment> findTopByOrderByPaymentIdDesc();

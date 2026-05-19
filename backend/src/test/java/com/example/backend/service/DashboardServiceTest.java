@@ -2,7 +2,6 @@ package com.example.backend.service;
 
 import com.example.backend.dto.DashboardStatsDto;
 import com.example.backend.dto.projection.RecentRentalProjection;
-import com.example.backend.entity.Payment;
 import com.example.backend.entity.Staff;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.repository.*;
@@ -59,12 +58,6 @@ class DashboardServiceTest {
         staff.setStoreId(1);
     }
 
-    private Payment payment(BigDecimal amount) {
-        Payment p = new Payment();
-        p.setAmount(amount);
-        return p;
-    }
-
     private RecentRentalProjection projection(Integer id, String title) {
         return new RecentRentalProjection() {
             @Override
@@ -103,9 +96,7 @@ class DashboardServiceTest {
         when(customerRepository.countByStore_StoreId(1)).thenReturn(100L);
         when(filmRepository.count()).thenReturn(1000L);
         when(rentalRepository.countByStaff_StoreIdAndReturnDateIsNull(1)).thenReturn(20L);
-        when(paymentRepository.findByStaff_StoreId(1)).thenReturn(List.of(
-                payment(BigDecimal.valueOf(4.99)),
-                payment(BigDecimal.valueOf(2.99))));
+        when(paymentRepository.sumAmountByStoreId(1)).thenReturn(BigDecimal.valueOf(7.98));
         DashboardStatsDto dto = dashboardService.getDashboardStats();
 
         assertThat(dto.getTotalCustomers()).isEqualTo(100L);

@@ -7,15 +7,18 @@ import com.example.backend.entity.FilmCategoryId;
 import com.example.backend.entity.Language;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Transactional
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class FilmCategoryRepositoryTest {
 
     @Autowired
@@ -31,7 +35,20 @@ class FilmCategoryRepositoryTest {
     @Autowired
     private EntityManager entityManager;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     private Pageable pageable;
+
+    @BeforeAll
+    void resetTinyIntAutoIncrement() {
+        Integer nextCat = jdbcTemplate.queryForObject(
+                "SELECT COALESCE(MAX(category_id),0)+1 FROM category", Integer.class);
+        Integer nextLang = jdbcTemplate.queryForObject(
+                "SELECT COALESCE(MAX(language_id),0)+1 FROM language", Integer.class);
+        jdbcTemplate.execute("ALTER TABLE category AUTO_INCREMENT = " + nextCat);
+        jdbcTemplate.execute("ALTER TABLE language AUTO_INCREMENT = " + nextLang);
+    }
 
     @BeforeEach
     void setUp() {

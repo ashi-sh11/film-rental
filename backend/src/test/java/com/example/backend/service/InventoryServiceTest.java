@@ -124,28 +124,9 @@ class InventoryServiceTest {
         when(filmRepository.findDistinctByInventories_Store_StoreId(eq(1), any(PageRequest.class)))
                 .thenReturn(new PageImpl<>(List.of(film)));
 
-        Store store = staff.getStore();
-
-        Inventory inv1 = new Inventory();
-        inv1.setInventoryId(1);
-        inv1.setFilm(film);
-        inv1.setStore(store);
-
-        Inventory inv2 = new Inventory();
-        inv2.setInventoryId(2);
-        inv2.setFilm(film);
-        inv2.setStore(store);
-
-        when(inventoryRepository.findByStore_StoreIdAndFilm_FilmIdIn(eq(1), eq(List.of(10))))
-                .thenReturn(List.of(inv1, inv2));
-
-        Rental rental = new Rental();
-        rental.setInventory(inv1);
-
-        when(rentalRepository
-                .findByInventory_Store_StoreIdAndInventory_Film_FilmIdInAndReturnDateIsNull(
-                        eq(1), eq(List.of(10))))
-                .thenReturn(List.of(rental));
+        when(inventoryRepository.countByFilm_FilmIdAndStore_StoreId(10, 1)).thenReturn(2L);
+        when(rentalRepository.countByInventory_Film_FilmIdAndInventory_Store_StoreIdAndReturnDateIsNull(10, 1))
+                .thenReturn(1L);
 
         Page<InventoryDto> page = inventoryService.getStoreInventory(PageRequest.of(0, 5));
 
