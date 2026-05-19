@@ -28,8 +28,9 @@ public class DashboardService {
         Long totalCustomers = customerRepository.countByStore_StoreId(storeId);
         Long totalMovies = filmRepository.count();
         Long activeRentals = rentalRepository.countByStaff_StoreIdAndReturnDateIsNull(storeId);
-        Double totalRevenue = paymentRepository.sumAmountByStaff_StoreId(storeId);
-        if (totalRevenue == null) totalRevenue = 0.0;
+        Double totalRevenue = paymentRepository.findByStaff_StoreId(storeId).stream()
+                .map(p -> p.getAmount().doubleValue())
+                .reduce(0.0, Double::sum);
 
         return DashboardStatsDto.builder()
                 .totalCustomers(totalCustomers)
