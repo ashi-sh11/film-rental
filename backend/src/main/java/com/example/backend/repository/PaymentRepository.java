@@ -24,8 +24,5 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
     @EntityGraph(attributePaths = {"customer", "staff", "rental"})
     List<Payment> findByStaff_StoreId(
             Integer storeId
-    ); 
-
-    @Query("SELECT SUM(p.amount) FROM Payment p WHERE p.staff.storeId = :storeId")
-    Double sumAmountByStaff_StoreId(@Param("storeId") Integer storeId);
+    );
 }
