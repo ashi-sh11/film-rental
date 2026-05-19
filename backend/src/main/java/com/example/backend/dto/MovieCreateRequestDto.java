@@ -1,11 +1,13 @@
 package com.example.backend.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.Year;
 import java.util.List;
 
 @Getter
@@ -22,6 +24,18 @@ public class MovieCreateRequestDto {
     // Sakila stores YEAR. Accept anything starting with 4 digits (e.g. "2024", "2024-01-01").
     @Pattern(regexp = "^\\d{4}.*", message = "Release year must start with a 4-digit year")
     private String releaseYear;
+
+    @JsonIgnore
+    @AssertTrue(message = "Release year must be between 1888 and the current year")
+    public boolean isReleaseYearWithinRange() {
+        if (releaseYear == null || releaseYear.length() < 4) return true;
+        try {
+            int y = Integer.parseInt(releaseYear.substring(0, 4));
+            return y >= 1888 && y <= Year.now().getValue();
+        } catch (NumberFormatException ex) {
+            return true;
+        }
+    }
 
     @NotNull(message = "Language is required")
     @Positive(message = "Language ID must be positive")

@@ -66,7 +66,7 @@ class CustomerControllerTest {
         r.setAddress("123 Main St");
         r.setDistrict("Some District");
         r.setCityId(1);
-        r.setPhone("+1 555-0000");
+        r.setPhone("5551230000");
         return r;
     }
 
