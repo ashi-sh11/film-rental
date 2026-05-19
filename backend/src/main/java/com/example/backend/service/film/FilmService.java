@@ -73,7 +73,7 @@ public class FilmService {
 
 
     public MovieDetailsDto getMovieDetails(Integer filmId) {
-        Film film = filmRepository.findById(filmId)
+        Film film = filmRepository.findDetailedByFilmId(filmId)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie not found"));
 
         List<MovieDetailsDto.ActorSummary> actors = film.getFilmActors().stream()

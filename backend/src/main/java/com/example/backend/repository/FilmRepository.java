@@ -41,5 +41,7 @@ public interface FilmRepository extends JpaRepository<Film, Integer> {
     Page<FilmProjection> findDistinctByFilmCategories_Category_NameIgnoreCase(
             String categoryName, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"language", "filmActors.actor"})
+    java.util.Optional<Film> findDetailedByFilmId(Integer filmId);
 
 }

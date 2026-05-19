@@ -103,9 +103,7 @@ class DashboardServiceTest {
         when(customerRepository.countByStore_StoreId(1)).thenReturn(100L);
         when(filmRepository.count()).thenReturn(1000L);
         when(rentalRepository.countByStaff_StoreIdAndReturnDateIsNull(1)).thenReturn(20L);
-        when(paymentRepository.findByStaff_StoreId(1)).thenReturn(List.of(
-                payment(BigDecimal.valueOf(4.99)),
-                payment(BigDecimal.valueOf(2.99))));
+        when(paymentRepository.sumAmountByStaff_StoreId(1)).thenReturn(7.98);
 
         DashboardStatsDto dto = dashboardService.getDashboardStats();
 

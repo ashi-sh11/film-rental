@@ -47,7 +47,7 @@ public class ActorService {
     }
 
     public Page<FilmProjection> getActorMovies(Integer actorId, Pageable pageable) {
-        if (actorRepository.findProjectedByActorId(actorId).isEmpty()) {
+        if (!actorRepository.existsById(actorId)) {
             throw new ResourceNotFoundException("Actor not found");
         }
         return filmRepository.findDistinctByFilmActors_Actor_ActorId(actorId, pageable);

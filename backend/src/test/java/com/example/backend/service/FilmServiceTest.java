@@ -262,7 +262,7 @@ class FilmServiceTest {
         film.setFilmActors(List.of(fa));
         film.setFilmCategories(List.of(fc));
 
-        when(filmRepository.findById(1)).thenReturn(Optional.of(film));
+        when(filmRepository.findDetailedByFilmId(1)).thenReturn(Optional.of(film));
 
         MovieDetailsDto dto = filmService.getMovieDetails(1);
 
@@ -276,7 +276,7 @@ class FilmServiceTest {
     @Test
     @DisplayName("getMovieDetails — should throw when film not found")
     void shouldThrowWhenFilmNotFoundForDetails() {
-        when(filmRepository.findById(99)).thenReturn(Optional.empty());
+        when(filmRepository.findDetailedByFilmId(99)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> filmService.getMovieDetails(99))
                 .isInstanceOf(ResourceNotFoundException.class)

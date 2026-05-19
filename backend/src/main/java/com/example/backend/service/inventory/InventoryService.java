@@ -80,17 +80,19 @@ public class InventoryService {
             return new PageImpl<>(List.of(), pageable, filmPage.getTotalElements());
         }
 
-        Map<Integer, Long> totalByFilm = inventoryRepository.findByStore_StoreIdAndFilm_FilmIdIn(storeId, filmIds).stream()
-                .collect(Collectors.groupingBy(i -> i.getFilm().getFilmId(), Collectors.counting()));
+        Map<Integer, Long> totalByFilm = filmIds.stream()
+                .collect(Collectors.toMap(
+                        filmId -> filmId,
+                        filmId -> inventoryRepository.countByFilm_FilmIdAndStore_StoreId(filmId, storeId)
+                ));
 
-        Map<Integer, Long> rentedByFilm = rentalRepository.findByInventory_Store_StoreIdAndInventory_Film_FilmIdInAndReturnDateIsNull(
-                        storeId, filmIds)
-                .stream()
-                .collect(
-                        Collectors.groupingBy
-                                (r -> r.getInventory().getFilm().getFilmId(),
-                                        Collectors.counting())
-                );
+        Map<Integer, Long> rentedByFilm = filmIds.stream()
+                .collect(Collectors.toMap(
+                        filmId -> filmId,
+                        filmId -> rentalRepository
+                                .countByInventory_Film_FilmIdAndInventory_Store_StoreIdAndReturnDateIsNull(
+                                        filmId, storeId)
+                ));
 
         List<InventoryDto> inventoryDtos = filmPage.getContent().stream()
                 .map(film -> {

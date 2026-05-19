@@ -196,7 +196,7 @@ class ActorServiceTest {
     @DisplayName("getActorMovies — should return paged films for valid actor")
     void shouldReturnMoviesForActor() {
         ActorProjection proj = actorProjection(1, "Tom", "Hanks");
-        when(actorRepository.findProjectedByActorId(1)).thenReturn(Optional.of(proj));
+        when(actorRepository.existsById(1)).thenReturn(true);
 
         Page<FilmProjection> films = new PageImpl<>(
                 List.of(filmProjection(10, "Forrest Gump")));
@@ -213,7 +213,7 @@ class ActorServiceTest {
     @Test
     @DisplayName("getActorMovies — should throw ResourceNotFoundException when actor does not exist")
     void shouldThrowWhenActorNotFoundForMovies() {
-        when(actorRepository.findProjectedByActorId(99)).thenReturn(Optional.empty());
+        when(actorRepository.existsById(99)).thenReturn(false);
 
         assertThatThrownBy(() -> actorService.getActorMovies(99, PageRequest.of(0, 10)))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -224,7 +224,7 @@ class ActorServiceTest {
     @DisplayName("getActorMovies — should return empty page when actor has no films")
     void shouldReturnEmptyPageWhenActorHasNoMovies() {
         ActorProjection proj = actorProjection(2, "New", "Actor");
-        when(actorRepository.findProjectedByActorId(2)).thenReturn(Optional.of(proj));
+        when(actorRepository.existsById(2)).thenReturn(true);
         when(filmRepository.findDistinctByFilmActors_Actor_ActorId(eq(2), any(PageRequest.class)))
                 .thenReturn(Page.empty());
 
