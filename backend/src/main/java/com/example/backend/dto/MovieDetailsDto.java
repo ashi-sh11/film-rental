@@ -1,9 +1,12 @@
 package com.example.backend.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -12,7 +15,9 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
-public class MovieDetailsDto {
+@NoArgsConstructor
+@AllArgsConstructor
+public class MovieDetailsDto implements Serializable {
 
     private Integer filmId;
 
@@ -43,5 +48,5 @@ public class MovieDetailsDto {
     private List<String> categories;
 
     // Lightweight nested record — Jackson serializes it as {actorId, name}.
-    public record ActorSummary(Integer actorId, String name) {}
+    public record ActorSummary(Integer actorId, String name) implements Serializable {}
 }

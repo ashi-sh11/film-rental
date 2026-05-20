@@ -1,9 +1,8 @@
 package com.example.backend.controller.film;
 
-import com.example.backend.dto.projection.CityProjection;
-import com.example.backend.dto.projection.CountryProjection;
-import com.example.backend.repository.CityRepository;
-import com.example.backend.repository.CountryRepository;
+import com.example.backend.service.film.LocationService;
+import com.example.backend.service.film.LocationService.CityDto;
+import com.example.backend.service.film.LocationService.CountryDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,16 +15,15 @@ import java.util.List;
 @RequestMapping("/api/locations")
 @RequiredArgsConstructor
 public class LocationController {
-    private final CountryRepository countryRepository;
-    private final CityRepository cityRepository;
+    private final LocationService locationService;
 
     @GetMapping("/countries")
-    public List<CountryProjection> getCountries() {
-        return countryRepository.findAllByOrderByCountryAsc();
+    public List<CountryDto> getCountries() {
+        return locationService.getCountries();
     }
 
     @GetMapping("/cities")
-    public List<CityProjection> getCities(@RequestParam Integer countryId) {
-        return cityRepository.findByCountry_CountryIdOrderByCityAsc(countryId);
+    public List<CityDto> getCities(@RequestParam Integer countryId) {
+        return locationService.getCities(countryId);
     }
 }

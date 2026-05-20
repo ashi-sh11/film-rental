@@ -1,6 +1,9 @@
 package com.example.backend.service.film;
 
 import com.example.backend.dto.*;
+import com.example.backend.dto.cache.CacheDtos.CategoryDto;
+import com.example.backend.dto.cache.CacheDtos.FilmDto;
+import com.example.backend.dto.cache.CacheDtos.LanguageDto;
 import com.example.backend.dto.projection.CategoryProjection;
 import com.example.backend.dto.projection.FilmProjection;
 import com.example.backend.dto.projection.LanguageProjection;
@@ -9,6 +12,9 @@ import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.repository.*;
 import com.example.backend.util.AuthUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -34,44 +40,61 @@ public class FilmService {
     private final StoreRepository storeRepository;
 
 
+    @Cacheable(value = "movies", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<FilmProjection> getAllMovies(Pageable pageable) {
-        return filmRepository.findAllProjectedBy(pageable);
+        return filmRepository.findAllProjectedBy(pageable)
+                .map(p -> (FilmProjection) FilmDto.from(p));
     }
 
+    @Cacheable(value = "movieSearch",
+            key = "#title + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<FilmProjection> searchMovies(String title, Pageable pageable) {
-        return filmRepository.findByTitleContainingIgnoreCase(title, pageable);
+        return filmRepository.findByTitleContainingIgnoreCase(title, pageable)
+                .map(p -> (FilmProjection) FilmDto.from(p));
     }
 
 
+    @Cacheable(value = "moviesByActor",
+            key = "#actorName + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<FilmProjection> searchMoviesByActor(String actorName, Pageable pageable) {
         String trimmed = actorName.trim();
         String[] parts = trimmed.split("\\s+");
 
-        if (parts.length >= 2) {
-            return filmRepository
-                    .findDistinctByFilmActors_Actor_FirstNameContainingIgnoreCaseAndFilmActors_Actor_LastNameContainingIgnoreCase(
-                            parts[0], parts[parts.length - 1], pageable);
-        }
-        return filmRepository
-                .findDistinctByFilmActors_Actor_FirstNameContainingIgnoreCaseOrFilmActors_Actor_LastNameContainingIgnoreCase(
-                        trimmed, trimmed, pageable);
+        Page<FilmProjection> raw = parts.length >= 2
+                ? filmRepository
+                        .findDistinctByFilmActors_Actor_FirstNameContainingIgnoreCaseAndFilmActors_Actor_LastNameContainingIgnoreCase(
+                                parts[0], parts[parts.length - 1], pageable)
+                : filmRepository
+                        .findDistinctByFilmActors_Actor_FirstNameContainingIgnoreCaseOrFilmActors_Actor_LastNameContainingIgnoreCase(
+                                trimmed, trimmed, pageable);
+        return raw.map(p -> (FilmProjection) FilmDto.from(p));
     }
 
+    @Cacheable(value = "moviesByCategory",
+            key = "#categoryName + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<FilmProjection> getMoviesByCategory(String categoryName, Pageable pageable) {
-        return filmRepository.findDistinctByFilmCategories_Category_NameIgnoreCase(categoryName, pageable);
+        return filmRepository.findDistinctByFilmCategories_Category_NameIgnoreCase(categoryName, pageable)
+                .map(p -> (FilmProjection) FilmDto.from(p));
     }
 
     // ===== Languages / Categories (interface projections) =====
 
+    @Cacheable(value = "languages")
     public List<LanguageProjection> getAllLanguages() {
-        return languageRepository.findAllByOrderByNameAsc();
+        return languageRepository.findAllByOrderByNameAsc().stream()
+                .<LanguageProjection>map(LanguageDto::from)
+                .toList();
     }
 
+    @Cacheable(value = "categories")
     public List<CategoryProjection> getAllCategories() {
-        return categoryRepository.findAllByOrderByNameAsc();
+        return categoryRepository.findAllByOrderByNameAsc().stream()
+                .<CategoryProjection>map(CategoryDto::from)
+                .toList();
     }
 
 
+    @Cacheable(value = "movieDetails", key = "#filmId")
     public MovieDetailsDto getMovieDetails(Integer filmId) {
         Film film = filmRepository.findDetailedByFilmId(filmId)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie not found"));
@@ -115,6 +138,21 @@ public class FilmService {
         filmActorRepository.save(fa);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardStats",  allEntries = true),
+            @CacheEvict(value = "movieDetails",    allEntries = true),
+            @CacheEvict(value = "movies",          allEntries = true),
+            @CacheEvict(value = "movieSearch",     allEntries = true),
+            @CacheEvict(value = "moviesByActor",   allEntries = true),
+            @CacheEvict(value = "moviesByCategory", allEntries = true),
+            @CacheEvict(value = "actors",          allEntries = true),
+            @CacheEvict(value = "actorsBasic",     allEntries = true),
+            @CacheEvict(value = "actorSearch",     allEntries = true),
+            @CacheEvict(value = "actorById",       allEntries = true),
+            @CacheEvict(value = "actorMovies",     allEntries = true),
+            @CacheEvict(value = "inventory",       allEntries = true),
+            @CacheEvict(value = "storeInventory",  allEntries = true)
+    })
     @Transactional
     public Integer createMovie(MovieCreateRequestDto request) {
         String username = authUtil.getLoggedInUsername();
