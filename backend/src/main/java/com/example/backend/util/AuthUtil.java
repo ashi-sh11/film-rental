@@ -10,7 +10,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 @Component
 @RequiredArgsConstructor
 public class AuthUtil {
-    private StaffRepository staffRepository;
+    private final StaffRepository staffRepository;
 
     public String getLoggedInUsername() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

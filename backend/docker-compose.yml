@@ -7,5 +7,6 @@ services:
       - .env
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN}
     ports:
       - "8080:8080"
