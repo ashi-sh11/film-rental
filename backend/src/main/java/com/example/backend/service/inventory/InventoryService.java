@@ -7,6 +7,7 @@ import com.example.backend.entity.Staff;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.repository.*;
 import com.example.backend.util.AuthUtil;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +41,7 @@ public class InventoryService {
     }
 
 
+    @Cacheable(value = "inventory", key = "#filmId + ':' + @authUtil.getLoggedInUsername()")
     public InventoryDto getInventory(Integer filmId) {
         Film film = inventoryRepository.findById(filmId).orElseThrow(() -> new ResourceNotFoundException("film not found with id: " + filmId)).getFilm();
         Integer storeId = currentStoreId();
@@ -62,6 +64,8 @@ public class InventoryService {
         return getStoreInventory(null, pageable);
     }
 
+    @Cacheable(value = "storeInventory",
+            key = "(#search ?: '') + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + @authUtil.getLoggedInUsername()")
     public Page<InventoryDto> getStoreInventory(String search, Pageable pageable) {
         Integer storeId = currentStoreId();
         Page<Film> filmPage;

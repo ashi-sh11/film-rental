@@ -2,6 +2,7 @@ package com.example.backend.service.rental;
 
 import com.example.backend.dto.RentalConfirmationDto;
 import com.example.backend.dto.RentalRequestDto;
+import com.example.backend.dto.cache.CacheDtos.RentalDto;
 import com.example.backend.dto.projection.RentalProjection;
 import com.example.backend.entity.*;
 import com.example.backend.exception.BadRequestException;
@@ -13,6 +14,9 @@ import com.example.backend.repository.StaffRepository;
 import com.example.backend.service.payment.PaymentService;
 import com.example.backend.util.AuthUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,6 +36,14 @@ public class RentalService {
     private final PaymentService paymentService;
     private final AuthUtil authUtil;
 
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardStats",   allEntries = true),
+            @CacheEvict(value = "inventory",        allEntries = true),
+            @CacheEvict(value = "storeInventory",   allEntries = true),
+            @CacheEvict(value = "activeRentals",    allEntries = true),
+            @CacheEvict(value = "customerRentals",  allEntries = true),
+            @CacheEvict(value = "recentRentals",    allEntries = true)
+    })
     @Transactional
     public RentalConfirmationDto rentMovie(RentalRequestDto dto) {
 
@@ -76,6 +88,14 @@ public class RentalService {
                 .build();
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardStats",   allEntries = true),
+            @CacheEvict(value = "inventory",        allEntries = true),
+            @CacheEvict(value = "storeInventory",   allEntries = true),
+            @CacheEvict(value = "activeRentals",    allEntries = true),
+            @CacheEvict(value = "customerRentals",  allEntries = true),
+            @CacheEvict(value = "recentRentals",    allEntries = true)
+    })
     @Transactional
     public String returnMovie(Integer rentalId) {
         Rental rental = rentalRepository.findById(rentalId)
@@ -86,33 +106,39 @@ public class RentalService {
         return "Movie returned successfully";
     }
 
+    @Cacheable(value = "activeRentals",
+            key = "(#search ?: '') + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + @authUtil.getLoggedInUsername()")
     public Page<RentalProjection> getActiveRentals(String search, Pageable pageable) {
         Integer storeId = currentStoreId();
 
+        Page<RentalProjection> page;
         if (search == null || search.trim().isEmpty()) {
-            return rentalRepository.findByStaff_StoreIdAndReturnDateIsNull(storeId, pageable);
+            page = rentalRepository.findByStaff_StoreIdAndReturnDateIsNull(storeId, pageable);
+        } else {
+            String q = search.trim();
+            String[] parts = q.split("\\s+");
+
+            page = rentalRepository
+                    .findByStaff_StoreIdAndReturnDateIsNullAndInventory_Film_TitleContainingIgnoreCaseOrStaff_StoreIdAndReturnDateIsNullAndCustomer_FirstNameContainingIgnoreCaseOrStaff_StoreIdAndReturnDateIsNullAndCustomer_LastNameContainingIgnoreCase(
+                            storeId, q, storeId, q, storeId, q, pageable);
+
+            if (parts.length >= 2 && page.isEmpty()) {
+                page = rentalRepository
+                        .findByStaff_StoreIdAndReturnDateIsNullAndCustomer_FirstNameContainingIgnoreCaseAndCustomer_LastNameContainingIgnoreCase(
+                                storeId, parts[0], parts[parts.length - 1], pageable);
+            }
         }
-
-        String q = search.trim();
-        String[] parts = q.split("\\s+");
-
-        Page<RentalProjection> page = rentalRepository
-                .findByStaff_StoreIdAndReturnDateIsNullAndInventory_Film_TitleContainingIgnoreCaseOrStaff_StoreIdAndReturnDateIsNullAndCustomer_FirstNameContainingIgnoreCaseOrStaff_StoreIdAndReturnDateIsNullAndCustomer_LastNameContainingIgnoreCase(
-                        storeId, q, storeId, q, storeId, q, pageable);
-
-        if (parts.length >= 2 && page.isEmpty()) {
-            return rentalRepository
-                    .findByStaff_StoreIdAndReturnDateIsNullAndCustomer_FirstNameContainingIgnoreCaseAndCustomer_LastNameContainingIgnoreCase(
-                            storeId, parts[0], parts[parts.length - 1], pageable);
-        }
-        return page;
+        return page.map(p -> (RentalProjection) RentalDto.from(p));
     }
 
+    @Cacheable(value = "customerRentals",
+            key = "#customerId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<RentalProjection> getCustomerRentals(Integer customerId, Pageable pageable) {
         if (!customerRepository.existsById(customerId)) {
             throw new ResourceNotFoundException("Customer not found");
         }
-        return rentalRepository.findByCustomer_CustomerId(customerId, pageable);
+        return rentalRepository.findByCustomer_CustomerId(customerId, pageable)
+                .map(p -> (RentalProjection) RentalDto.from(p));
     }
 
     private Integer currentStoreId() {

@@ -2,6 +2,7 @@ package com.example.backend.service.customer;
 
 
 import com.example.backend.dto.CustomerRequestDto;
+import com.example.backend.dto.cache.CacheDtos.CustomerDto;
 import com.example.backend.dto.projection.CustomerProjection;
 import com.example.backend.entity.*;
 import com.example.backend.exception.ResourceNotFoundException;
@@ -13,6 +14,9 @@ import com.example.backend.util.AuthUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +36,11 @@ public class CustomerService {
     @PersistenceContext
     private EntityManager entityManager;
 
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardStats",   allEntries = true),
+            @CacheEvict(value = "customers",        allEntries = true),
+            @CacheEvict(value = "customerSearch",   allEntries = true)
+    })
     @Transactional
     public String addCustomer(CustomerRequestDto dto) {
         City city = cityRepository.findById(dto.getCityId())
@@ -76,28 +85,35 @@ public class CustomerService {
         return String.valueOf(customer.getCustomerId());
     }
 
+    @Cacheable(value = "customers",
+            key = "#pageable.pageNumber + ':' + #pageable.pageSize + ':' + @authUtil.getLoggedInUsername()")
     public Page<CustomerProjection> getAllCustomers(Pageable pageable) {
         Integer storeId = currentStoreId();
-        return customerRepository.findProjectedByStore_StoreId(storeId, pageable);
+        return customerRepository.findProjectedByStore_StoreId(storeId, pageable)
+                .map(p -> (CustomerProjection) CustomerDto.from(p));
     }
 
+    @Cacheable(value = "customerSearch",
+            key = "#name + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + @authUtil.getLoggedInUsername()")
     public Page<CustomerProjection> searchCustomers(String name, Pageable pageable) {
         Integer storeId = currentStoreId();
         String trimmed = name.trim();
         String[] parts = trimmed.split("\\s+");
 
-        if (parts.length >= 2) {
-            return customerRepository
-                    .findProjectedByStore_StoreIdAndFirstNameContainingIgnoreCaseAndLastNameContainingIgnoreCase(
-                            storeId, parts[0], parts[parts.length - 1], pageable);
-        }
-        return customerRepository
-                .findProjectedByStore_StoreIdAndFirstNameContainingIgnoreCaseOrStore_StoreIdAndLastNameContainingIgnoreCase(
-                        storeId, trimmed, storeId, trimmed, pageable);
+        Page<CustomerProjection> raw = parts.length >= 2
+                ? customerRepository
+                        .findProjectedByStore_StoreIdAndFirstNameContainingIgnoreCaseAndLastNameContainingIgnoreCase(
+                                storeId, parts[0], parts[parts.length - 1], pageable)
+                : customerRepository
+                        .findProjectedByStore_StoreIdAndFirstNameContainingIgnoreCaseOrStore_StoreIdAndLastNameContainingIgnoreCase(
+                                storeId, trimmed, storeId, trimmed, pageable);
+        return raw.map(p -> (CustomerProjection) CustomerDto.from(p));
     }
 
+    @Cacheable(value = "customerById", key = "#id")
     public CustomerProjection getCustomerById(Integer id) {
         return customerRepository.findProjectedByCustomerId(id)
+                .map(CustomerDto::from)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
     }
 
