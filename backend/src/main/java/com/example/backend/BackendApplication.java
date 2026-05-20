@@ -13,6 +13,14 @@ public class BackendApplication {
 
     public static void main(String[] args) {
 
+        // Must be set BEFORE SpringApplication.run() — DevTools' RestartApplicationListener
+        // reads this very early, and the equivalent line in application.properties is
+        // processed too late. Without this, the RestartClassLoader stays active and
+        // every JDK-serialized Redis cache hit fails with ClassCastException
+        // ("Cannot cast Foo to Foo"), which surfaces as the cached endpoint returning
+        // empty/broken data on the second click.
+        System.setProperty("spring.devtools.restart.enabled", "false");
+
         try {
             Dotenv dotenv = Dotenv.configure()
                     .directory(".")

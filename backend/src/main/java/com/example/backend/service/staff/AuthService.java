@@ -26,16 +26,14 @@ public class AuthService {
 
         String token = jwtService.generateToken(request.getUsername(), "ROLE_STAFF");
 
-        Integer staffId = staffRepository
-                .findByUsername(request.getUsername())
-                .map(Staff::getStaffId)
-                .orElse(null);
+        Staff staff = staffRepository.findByUsername(request.getUsername()).orElse(null);
 
         return LoginResponseDto.builder()
                 .token(token)
                 .username(request.getUsername())
                 .role("ROLE_STAFF")
-                .staffId(staffId)
+                .staffId(staff != null ? staff.getStaffId() : null)
+                .storeId(staff != null ? staff.getStoreId() : null)
                 .build();
     }
 }

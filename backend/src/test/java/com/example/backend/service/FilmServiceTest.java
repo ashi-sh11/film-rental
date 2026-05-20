@@ -431,15 +431,14 @@ class FilmServiceTest {
         Film saved = buildFilm(100, "New Movie");
         when(filmRepository.save(any(Film.class))).thenReturn(saved);
 
-        Actor lastActor = new Actor();
-        lastActor.setActorId(50);
-        when(actorRepository.findTopByOrderByActorIdDesc()).thenReturn(Optional.of(lastActor));
-
+        // Actor.actorId uses @GeneratedValue(IDENTITY); the service no longer
+        // manually pre-computes an id, and uses saveAndFlush so Hibernate
+        // populates the id before linking the FilmActor.
         Actor newActor = new Actor();
         newActor.setActorId(51);
         newActor.setFirstName("Jane");
         newActor.setLastName("Doe");
-        when(actorRepository.save(any(Actor.class))).thenReturn(newActor);
+        when(actorRepository.saveAndFlush(any(Actor.class))).thenReturn(newActor);
 
         Store store = new Store();
         store.setStoreId(1);
@@ -448,9 +447,11 @@ class FilmServiceTest {
         filmService.createMovie(req);
 
         ArgumentCaptor<Actor> captor = ArgumentCaptor.forClass(Actor.class);
-        verify(actorRepository).save(captor.capture());
+        verify(actorRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getFirstName()).isEqualTo("Jane");
-        assertThat(captor.getValue().getActorId()).isEqualTo(51);
+        assertThat(captor.getValue().getLastName()).isEqualTo("Doe");
+        // ID is NOT manually set — Hibernate IDENTITY assigns it on flush.
+        assertThat(captor.getValue().getActorId()).isNull();
 
         verify(filmActorRepository, times(1)).save(any(FilmActor.class));
     }

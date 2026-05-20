@@ -186,19 +186,17 @@ public class FilmService {
         }
 
         // Create + link brand-new actors entered inline in the form.
+        // Actor.actorId uses @GeneratedValue(IDENTITY) — DO NOT pre-set the id.
+        // Setting it would make Hibernate treat the entity as detached and try
+        // to MERGE (UPDATE) a row that doesn't exist, which silently no-ops
+        // and breaks the FilmActor link below.
         if (request.getNewActors() != null && !request.getNewActors().isEmpty()) {
-            // Pre-compute next actor id once; we increment locally as we save more.
-            int nextActorId = actorRepository.findTopByOrderByActorIdDesc()
-                    .map(a -> a.getActorId() + 1)
-                    .orElse(1);
-
             for (NewActorDto na : request.getNewActors()) {
                 Actor newActor = new Actor();
-                newActor.setActorId(nextActorId++);
                 newActor.setFirstName(na.getFirstName().trim());
                 newActor.setLastName(na.getLastName().trim());
                 newActor.setLastUpdate(LocalDateTime.now());
-                Actor savedActor = actorRepository.save(newActor);
+                Actor savedActor = actorRepository.saveAndFlush(newActor);
 
                 linkActorToFilm(savedActor, saved);
             }

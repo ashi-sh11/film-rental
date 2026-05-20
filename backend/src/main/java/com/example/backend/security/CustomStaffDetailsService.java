@@ -30,6 +30,14 @@ public class CustomStaffDetailsService
                                 "Staff not found"
                         ));
 
+        // MySQL's default collation (utf8mb4_0900_ai_ci) is case-insensitive,
+        // so findByUsername("Alice_D") would match a row "alice_d". We want
+        // strict, case-sensitive login — verify the stored username matches
+        // exactly what was typed.
+        if (!staff.getUsername().equals(username)) {
+            throw new UsernameNotFoundException("Staff not found");
+        }
+
         return new User(
 
                 staff.getUsername(),

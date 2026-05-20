@@ -16,4 +16,6 @@ public class LoginResponseDto {
     private String role;
 
     private Integer staffId;
+
+    private Integer storeId;
 }
